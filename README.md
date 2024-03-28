@@ -11,4 +11,4 @@ Student Info
 
 * Student Name: Dao Xuan Quy
 * Student ID: BI12-379
-* Student Group ID: Not-for-now
+* Student Group ID: 18

@@ -19,6 +19,7 @@ int PORT;
 void *receive_thread(void *arg);
 void sending(int PORT_server);
 void receiving(int server_fd);
+int is_connected(int PORT_server);
 
 int main(int argc, char const *argv[]) {
     printf("Enter name:");
@@ -60,6 +61,13 @@ int main(int argc, char const *argv[]) {
     printf("Enter the port to send message:");
     scanf("%d", &PORT_server);
     getchar(); 
+    
+    int check_connection = is_connected(PORT_server);
+    
+    if (check_connection == 0){
+        printf("Failed to establish a connection\n");
+    }
+    printf("Established connection. Have fun chatting :>\n");
     while (1) {
         sending(PORT_server);
     }
@@ -73,14 +81,31 @@ void *receive_thread(void *arg) {
     return NULL;
 }
 
-void sending(int PORT_server) {
+int is_connected(int PORT_server){
     char buffer[MAX_MESSAGE_LENGTH] = {0};
-    // int PORT_server;
+    int sock = 0;
+    struct sockaddr_in serv_addr;
+    char hello[1024] = {0};
+    
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("Socket creation error");
+        return 0;
+    }
 
-    // printf("Enter the port to send message:");
-    // scanf("%d", &PORT_server);
-    // getchar(); // Clear the newline character from the input buffer
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    serv_addr.sin_port = htons(PORT_server);
 
+    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        perror("Connection Failed");
+        close(sock);
+        return 0;
+    }
+    return 1;
+}
+
+void sending(int PORT_server) { 
+    char buffer[MAX_MESSAGE_LENGTH] = {0};
     int sock = 0;
     struct sockaddr_in serv_addr;
     char hello[1024] = {0};
@@ -95,32 +120,12 @@ void sending(int PORT_server) {
 
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
         perror("Connection Failed");
-        close(sock); // Close socket on connection failure
-        return;
+        close(sock);
     }
     
-    char dummy;
     scanf("%[^\n]%*c", hello);
-    // printf("Message: %s\n", hello);
     sprintf(buffer, "%s[PORT:%d] says: %s", name, PORT, hello);
     send(sock, buffer, strlen(buffer), 0);
-    // printf("Message sent\n");
-    // fgets(buffer, MAX_MESSAGE_LENGTH, stdin); // Use fgets to handle spaces in input
-
-    // // Remove leading whitespace and newline characters
-    // char *pos = buffer;
-    // while (*pos == ' ' || *pos == '\n')
-    //     pos++;
-
-    // // Format the message with sender's name
-    // snprintf(buffer, sizeof(buffer), "%s[PORT:%d] says: %s", name, PORT, pos);
-
-    // int sent_bytes = send(sock, buffer, strlen(buffer), 0);
-    // if (sent_bytes < 0) {
-    //     perror("Error sending message");
-    // } else {
-    //     printf("\nMessage sent\n");
-    // }
     close(sock);
 }
 
@@ -175,41 +180,6 @@ void receiving(int server_fd) {
                 break;
             }
         }
-    }
-    
-    // while (1) {
-    //     ready_sockets = current_sockets;
-
-    //     if (select(FD_SETSIZE, &ready_sockets, NULL, NULL, NULL) < 0) {
-    //         perror("Error in select");
-    //         exit(EXIT_FAILURE);
-    //     }
-
-    //     for (int i = 0; i < FD_SETSIZE; i++) {
-    //         if (FD_ISSET(i, &ready_sockets)) {
-    //             if (i == server_fd) {
-    //                 int client_socket;
-    //                 if ((client_socket = accept(server_fd, (struct sockaddr *)&address,
-    //                     (socklen_t *)&addrlen)) < 0) {
-    //                     perror("accept");
-    //                 continue; // Continue to next iteration to avoid closing an uninitialized socket
-    //                     }
-    //                     FD_SET(client_socket, &current_sockets);
-    //             } else {
-    //                 char buffer[MAX_MESSAGE_LENGTH] = {0};
-    //                 int valread = recv(i, buffer, sizeof(buffer), 0);
-    //                 if (valread <= 0) {
-    //                     if (valread < 0) {
-    //                         perror("Error receiving message");
-    //                     }
-    //                     close(i);
-    //                     FD_CLR(i, &current_sockets);
-    //                 } else {
-    //                     printf("\n%s\n", buffer);
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+    }    
 }
 
